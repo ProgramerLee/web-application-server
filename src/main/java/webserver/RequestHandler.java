@@ -1,10 +1,10 @@
 package webserver;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,10 +24,30 @@ public class RequestHandler extends Thread {
 
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
             // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
-            DataOutputStream dos = new DataOutputStream(out);
-            byte[] body = "Hello World".getBytes();
-            response200Header(dos, body.length);
-            responseBody(dos, body);
+            BufferedReader br = new BufferedReader(new InputStreamReader(in));
+
+            String line = br.readLine();
+
+            if(line == null){return;}
+            int lineNum = 1;
+
+            if(line != null){
+                while(!"".equals(line)){
+                    if(lineNum ==1){ //첫번째 줄일 때
+                        String[] requsetInfos =line.split(" "); //url을 얻기 위해서
+                        Path path = Paths.get("./webapp"+requsetInfos[1]);  //해당 파일의 경로를 얻는다.
+
+                        byte[] body = Files.readAllBytes(path); //파일을 바이트로 읽는다.
+                        DataOutputStream dos = new DataOutputStream(out);
+                        //byte[] body = "Hello World".getBytes();
+                        response200Header(dos, body.length);
+                        responseBody(dos, body);
+                    }
+                    line = br.readLine();
+                    lineNum++;
+                }
+            }
+
         } catch (IOException e) {
             log.error(e.getMessage());
         }
