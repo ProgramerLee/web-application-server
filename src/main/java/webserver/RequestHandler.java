@@ -17,7 +17,7 @@ import java.util.Collection;
 import java.util.Map;
 
 public class RequestHandler extends Thread {
-    private static final Logger log = LoggerFactory.getLogger(RequestHandlerBack.class);
+    private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
 
     private Socket connection;
 
