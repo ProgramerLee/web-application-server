@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class HttpRequest {
 
-    private String method = "";
+    public boolean logineFlg;
     private String path = "";
     private String header = "";
     private String parameter = "";
@@ -22,14 +22,14 @@ public class HttpRequest {
     private int questionIndex;
     String[] headerLine;
 
+    private HttpMethod method;
+
     public HttpRequest(InputStream inputStream) throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
         String line = br.readLine();
 
         questionIndex = 0;
 
-        //1. 메소드
-        //2. URL
         path = getURL(line);
 
         int contentLength = 0;
@@ -45,13 +45,13 @@ public class HttpRequest {
                 String[] httpBody = line.split(": ");
                 contentLength = Integer.parseInt(httpBody[1]);
             }
+
+            if(line.contains("Cookie")) logineFlg = isLogin(line);
             line = br.readLine();
         }
 
-        if(method.equals("GET"))getRequest(headerLine, questionIndex);
-
-        //4. 본문
-        if (method.equals("POST")){getPost(br, contentLength);}
+        if(method.isGet())getRequest(headerLine, questionIndex);
+        if (method.isPost()){getPost(br, contentLength);}
 
     }
 
@@ -60,17 +60,21 @@ public class HttpRequest {
         headerLine = line.split(" ");
 
         //1. 메소드
-        method = headerLine[0];
+        method = HttpMethod.valueOf(headerLine[0]);
 
-        if(method.equals("GET")) {
-            questionIndex = headerLine[1].indexOf("?");
-            url = headerLine[1].substring(0, questionIndex);
-        }else{
+        if(method.isPost()){
             url = headerLine[1];
+        }else{
+            questionIndex = headerLine[1].indexOf("?");
+            if(questionIndex == -1){
+                url = headerLine[1];
+            }else{
+                url = headerLine[1].substring(0, questionIndex);
+            }
         }
         return url;
     }
-    public String getMethod(){
+    public HttpMethod getMethod(){
         return method;
     }
     public String getPath(){
@@ -99,13 +103,15 @@ public class HttpRequest {
         Map<String, String> userInfoMap = HttpRequestUtils.parseQueryString(userInfo);
         user = new User(userInfoMap.get("userId"), userInfoMap.get("password"), userInfoMap.get("name"), userInfoMap.get("email"));
         DataBase.addUser(user);
-        /*url = "/index.html";
-
-        byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());//파일을 바이트로 읽는다.
-        DataOutputStream dos = new DataOutputStream(out);
-        response302Header(dos, "/index.html");*/
     }
 
-
-
+    public boolean isLogin(String line){
+        String[] headerTokens = line.split(":");
+        Map<String,String> cookies = HttpRequestUtils.parseCookies(headerTokens[1].trim());
+        String value = cookies.get("logined");
+        if(value ==null){
+            return false;
+        }
+        return Boolean.parseBoolean(value);
+    }
 }
